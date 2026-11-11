@@ -76,9 +76,9 @@
         </header>
 
         <div class="card">
-            <h2>Analyse automatique</h2>
+            <h2>Analyse de l'historique des CG</h2>
             <div id="status" class="status-box status-uab">
-                ⏳ Prêt. Touchez le bouton pour analyser la page et le PDF de référence.
+                ⏳ Prêt. Touchez le bouton pour analyser la page d'historique et le PDF de référence.
             </div>
             <button id="runBtn" class="btn">🔄 Lancer la vérification</button>
             <div id="result" style="margin-top: 20px;"></div>
@@ -87,18 +87,19 @@
         <div class="card">
             <h2>🔗 Accès directs</h2>
             <ul style="padding-left:20px;">
+                <li><a href="https://www.revolut.com/fr-FR/legal/terms/history/" target="_blank" rel="noopener noreferrer">Page d'historique des CG (celle analysée)</a></li>
                 <li><a href="https://www.revolut.com/fr-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (FR)</a></li>
                 <li><a href="https://www.revolut.com/en-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (EN)</a></li>
             </ul>
-            <p class="meta">La page FR liste les trois entités (UAB, Succursale FR, S.A.) et indique pour chacune la date d'application.</p>
+            <p class="meta">La page d'historique liste les versions avec leurs dates et liens PDF. La page des CG contient le texte complet des trois entités (UAB, Succursale FR, S.A.).</p>
         </div>
 
         <div class="card">
             <h2>ℹ️ Ce que l'outil vérifie</h2>
             <ul style="padding-left:20px;">
-                <li><strong>Entité :</strong> présence de « Revolut Bank UAB » (Lituanie) et/ou « Revolut Bank S.A. » (France).</li>
-                <li><strong>Dates :</strong> extraction de toutes les dates citées dans le PDF (format FR, EN, ISO, DD/MM/YYYY).</li>
-                <li><strong>Date d'entrée en vigueur :</strong> repérage des mentions « entrée en vigueur », « applicable à compter du », « effective from », « takes effect »… et comparaison à la date du jour.</li>
+                <li><strong>Versions listées :</strong> extraction des numéros de version, dates de publication et liens PDF depuis la page d'historique.</li>
+                <li><strong>Dates :</strong> extraction de toutes les dates citées dans le PDF le plus récent (format FR, EN, ISO, DD/MM/YYYY).</li>
+                <li><strong>Date d'entrée en vigueur :</strong> repérage des mentions « entrée en vigueur », « applicable à compter du », « effective from »… et comparaison à la date du jour.</li>
             </ul>
         </div>
 
@@ -115,7 +116,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        const TERMS_URL = 'https://www.revolut.com/fr-FR/legal/terms/';
+        const HISTORY_URL = 'https://www.revolut.com/fr-FR/legal/terms/history/';
         const $ = id => document.getElementById(id);
 
         const statusEl = $('status');
@@ -123,7 +124,6 @@
         const runBtn = $('runBtn');
         const todayBadge = $('todayBadge');
 
-        // Affichage de la date du jour
         const today = new Date();
         const fmt = new Intl.DateTimeFormat('fr-FR', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -152,26 +152,22 @@
             const out = [];
             let m;
 
-            // "2 décembre 2026" / "1er janvier 2026"
             const reFr = /\b(\d{1,2})(?:er)?\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(\d{4})\b/gi;
             while ((m = reFr.exec(text)) !== null) {
                 const mo = MOIS_FR[m[2].toLowerCase()];
                 if (mo) out.push({ day:+m[1], month:mo, year:+m[3], raw:m[0] });
             }
 
-            // "December 2, 2026"
             const reEn = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
             while ((m = reEn.exec(text)) !== null) {
                 out.push({ day:+m[2], month:MOIS_EN[m[1].toLowerCase()], year:+m[3], raw:m[0] });
             }
 
-            // ISO "2026-12-02"
             const reIso = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
             while ((m = reIso.exec(text)) !== null) {
                 out.push({ day:+m[3], month:+m[2], year:+m[1], raw:m[0] });
             }
 
-            // "02/12/2026" ou "02.12.2026" (FR : JJ/MM/AAAA)
             const reSlash = /\b(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})\b/g;
             while ((m = reSlash.exec(text)) !== null) {
                 const d = +m[1], mo = +m[2], y = +m[3];
@@ -249,29 +245,56 @@
         }
 
         // ─────────────────────────────────────────────
-        // Scraping de la page legal/terms
+        // Scraping de la page d'historique
         // ─────────────────────────────────────────────
-        async function analyserPage() {
-            const res = await fetch(TERMS_URL, { headers: { 'Accept': 'text/html' } });
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' sur la page CG');
+        async function analyserHistorique() {
+            const res = await fetch(HISTORY_URL, { headers: { 'Accept': 'text/html' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status + ' sur la page d\'historique');
             const html = await res.text();
             const doc = new DOMParser().parseFromString(html, 'text/html');
-            const text = doc.body.innerText || doc.body.textContent || '';
 
-            const hasSA  = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i.test(text);
-            const hasUAB = /Revolut\s+Bank\s+UAB/i.test(text);
-            const hasParis = /(10\s+avenue\s+Kl[eé]ber|Paris)/i.test(text);
+            // Le contenu de la page est rendu côté client, on cherche donc les liens PDF
+            // et les blocs de texte qui les entourent.
+            const pdfLinks = [...doc.querySelectorAll('a[href$=".pdf"]')].map(a => a.href);
 
-            // Extraction du lien PDF (priorité aux CG personnelles FR)
-            const allLinks = [...doc.querySelectorAll('a[href]')].map(a => a.href);
-            const pdfLinks = allLinks.filter(h => /\.pdf(\?|#|$)/i.test(h) || h.includes('/terms_and_conditions/pdf/'));
-            const uniquePdf = [...new Set(pdfLinks)].sort((a, b) => {
-                const score = u => (/personal_terms|conditions/i.test(u) ? 2 : 0)
-                                 + (/fr[-_]FR|_fr\./i.test(u) ? 1 : 0);
-                return score(b) - score(a);
-            });
+            // Si les liens PDF ne sont pas directement trouvables (rendu JS),
+            // on tente une approche alternative : chercher dans le texte brut.
+            let fallbackLinks = [];
+            if (pdfLinks.length === 0) {
+                // Cherche des URL de PDF dans le HTML brut
+                const matches = html.match(/https:\/\/cdn\.revolut\.com\/[^"'\s]+\.pdf/g);
+                if (matches) fallbackLinks = [...new Set(matches)];
+            }
 
-            return { hasSA, hasUAB, hasParis, pdfUrl: uniquePdf[0] || null, allPdf: uniquePdf };
+            const finalLinks = pdfLinks.length > 0 ? pdfLinks : fallbackLinks;
+
+            // Extraction des versions et dates à partir du texte entourant les liens
+            const versions = [];
+            const seen = new Set();
+            for (const link of finalLinks) {
+                // Récupère un extrait de texte autour du lien pour trouver la version et la date
+                const idx = html.indexOf(link);
+                if (idx === -1) continue;
+                const snippet = html.slice(Math.max(0, idx - 500), idx + 500);
+                const dates = extractDates(snippet);
+                const versionMatch = snippet.match(/(\d+\.\d+\.\d+)/);
+                if (dates.length && versionMatch) {
+                    const key = `${versionMatch[1]}|${dates[0].year}-${dates[0].month}-${dates[0].day}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        versions.push({
+                            version: versionMatch[1],
+                            date: dates[0],
+                            pdfUrl: link
+                        });
+                    }
+                }
+            }
+
+            // Tri par date décroissante (la plus récente en premier)
+            versions.sort((a, b) => toUTC(b.date) - toUTC(a.date));
+
+            return { versions, pdfUrl: versions.length > 0 ? versions[0].pdfUrl : null, allLinks: finalLinks };
         }
 
         // ─────────────────────────────────────────────
@@ -294,14 +317,12 @@
                 if (reSA.test(text))  hitsSA.push(i);
                 if (reUAB.test(text)) hitsUAB.push(i);
 
-                // Cherche la date d'entrée en vigueur sur cette page
                 const effs = findEffectiveDates(text);
                 if (effs.length && !effective) {
                     effective = { ...effs[0], page: i };
                 }
             }
 
-            // Toutes les dates trouvées, dédupliquées par (j,m,a)
             const allDates = [];
             const seen = new Set();
             for (const p of pages) {
@@ -320,20 +341,28 @@
         // ─────────────────────────────────────────────
         // Rendu
         // ─────────────────────────────────────────────
-        function render(pageInfo, pdfInfo) {
+        function render(historyInfo, pdfInfo) {
             let entiteCls, entiteTxt;
-            if (pageInfo.hasSA && pageInfo.hasParis) {
-                entiteCls = 'status-sa'; entiteTxt = '🇫🇷 Revolut Bank S.A. — France';
-            } else if (pageInfo.hasUAB) {
-                entiteCls = 'status-uab'; entiteTxt = '🇱🇹 Revolut Bank UAB — Lituanie';
+            if (historyInfo.versions.length > 0) {
+                entiteCls = 'status-sa'; entiteTxt = '🇫🇷 Historique Revolut Bank S.A. détecté';
             } else {
-                entiteCls = 'status-error'; entiteTxt = '❓ Entité non identifiée';
+                entiteCls = 'status-error'; entiteTxt = '❓ Aucune version trouvée';
             }
             setStatus(entiteTxt, entiteCls);
 
             let html = '';
 
-            // Bloc date d'entrée en vigueur
+            if (historyInfo.versions.length > 0) {
+                html += `<div class="meta"><div>📋 Versions trouvées : ${historyInfo.versions.length}</div>`;
+                for (const v of historyInfo.versions.slice(0, 5)) {
+                    const delta = daysDelta(v.date);
+                    let vCls = classify(v.date);
+                    let vLabel = vCls === 'past' ? 'passée' : vCls === 'today' ? "aujourd'hui" : 'future';
+                    html += `<div style="margin-top:4px;">• Version <strong>${v.version}</strong> du ${fmtDate(v.date)} (${vLabel})</div>`;
+                }
+                html += `</div>`;
+            }
+
             if (pdfInfo && pdfInfo.effective) {
                 const d = pdfInfo.effective.date;
                 const delta = daysDelta(d);
@@ -365,10 +394,9 @@
                 </div>`;
             }
 
-            // Résumé entités dans le PDF
             if (pdfInfo) {
                 html += '<div class="meta">';
-                html += `<div>📄 PDF — ${pdfInfo.numPages} pages</div>`;
+                html += `<div>📄 PDF analysé — ${pdfInfo.numPages} pages</div>`;
                 if (pdfInfo.hitsSA.length)
                     html += `<div>✅ « Revolut Bank S.A. » → page(s) ${pdfInfo.hitsSA.join(', ')}</div>`;
                 if (pdfInfo.hitsUAB.length)
@@ -376,7 +404,6 @@
                 html += '</div>';
             }
 
-            // Tableau des dates
             if (pdfInfo && pdfInfo.allDates.length) {
                 html += `<details style="margin-top:16px;"><summary style="cursor:pointer;color:var(--muted);font-size:0.9rem;">📅 Toutes les dates citées dans le PDF (${pdfInfo.allDates.length})</summary>
                 <table>
@@ -392,16 +419,15 @@
                 html += `</tbody></table></details>`;
             }
 
-            // Lien de vérification manuelle
-            if (pageInfo.pdfUrl) {
+            if (historyInfo.pdfUrl) {
                 const targetPage = (pdfInfo && pdfInfo.effective && pdfInfo.effective.page)
                     || (pdfInfo && (pdfInfo.hitsSA[0] || pdfInfo.hitsUAB[0]))
                     || 1;
-                html += `<a class="btn-link" href="${pageInfo.pdfUrl}#page=${targetPage}" target="_blank" rel="noopener">
-                    🔗 Ouvrir le PDF à la page ${targetPage} pour vérification manuelle
+                html += `<a class="btn-link" href="${historyInfo.pdfUrl}#page=${targetPage}" target="_blank" rel="noopener">
+                    🔗 Ouvrir le PDF le plus récent à la page ${targetPage} pour vérification manuelle
                 </a>`;
             } else {
-                html += `<p class="meta">⚠️ Aucun lien PDF détecté sur la page CG.</p>`;
+                html += `<p class="meta">⚠️ Aucun lien PDF détecté sur la page d'historique.</p>`;
             }
 
             resultEl.innerHTML = html;
@@ -419,20 +445,20 @@
             runBtn.disabled = true;
             resultEl.innerHTML = '';
             try {
-                setStatus('⏳ Lecture de la page <code>legal/terms</code>…', 'status-uab');
-                const pageInfo = await analyserPage();
+                setStatus('⏳ Lecture de la page <code>legal/terms/history</code>…', 'status-uab');
+                const historyInfo = await analyserHistorique();
 
                 let pdfInfo = null;
-                if (pageInfo.pdfUrl) {
-                    setStatus('⏳ Analyse du PDF de référence…', 'status-uab');
+                if (historyInfo.pdfUrl) {
+                    setStatus('⏳ Analyse du PDF le plus récent…', 'status-uab');
                     try {
-                        pdfInfo = await analyserPdf(pageInfo.pdfUrl);
+                        pdfInfo = await analyserPdf(historyInfo.pdfUrl);
                     } catch (e) {
                         console.warn('Analyse PDF impossible :', e);
                     }
                 }
 
-                render(pageInfo, pdfInfo);
+                render(historyInfo, pdfInfo);
 
             } catch (err) {
                 console.error(err);
