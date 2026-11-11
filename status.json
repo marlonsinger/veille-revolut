@@ -1,5 +1,10 @@
 {
-  "success": false,
-  "error": "pdfParse is not a function",
-  "updatedAt": "2026-11-11T14:00:03.278Z"
+  "success": true,
+  "hasSA": true,
+  "effectiveDate": null,
+  "pdfUrl": "https://cdn.revolut.com/terms_and_conditions/pdf/conditions_g_n_rales_8de5b5e9_3.7.4_1794219057_fr.pdf",
+  "pageNum": 1,
+  "version": "3.7.4",
+  "dateStr": "9 novembre 2026",
+  "updatedAt": "2026-11-11T14:04:19.915Z"
 }
