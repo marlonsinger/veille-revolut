@@ -13,7 +13,7 @@ async function main() {
         
         const page = await browser.newPage();
         
-        // On se fait passer pour un vrai Mac pour ne pas être bloqué
+        // On se fait passer pour un vrai Mac pour ne pas être bloqué par Cloudflare
         await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.setExtraHTTPHeaders({ 'Accept-Language': 'fr-FR,fr;q=0.9' });
 
@@ -23,37 +23,45 @@ async function main() {
             timeout: 60000
         });
 
-        // Attendre que les liens PDF apparaissent dans le DOM
-        await page.waitForSelector('a[href$=".pdf"]', { timeout: 15000 });
+        // On cherche un lien qui CONTIENT ".pdf" (et pas forcément qui finit par .pdf)
+        console.log("3. Attente de l'apparition des liens PDF...");
+        await page.waitForSelector('a[href*=".pdf"]', { timeout: 15000 });
 
-        console.log("3. Extraction du lien PDF le plus récent...");
         const pdfUrl = await page.evaluate(() => {
-            // On cherche le premier lien PDF qui est dans la section S.A. (ou le premier tout court)
-            const links = Array.from(document.querySelectorAll('a[href$=".pdf"]'));
+            const links = Array.from(document.querySelectorAll('a[href*=".pdf"]'));
             return links.length > 0 ? links[0].href : null;
         });
 
         if (!pdfUrl) {
-            throw new Error("Aucun lien PDF trouvé sur la page, même après chargement dynamique.");
+            throw new Error("Aucun lien PDF trouvé sur la page.");
         }
 
         console.log("✅ Lien trouvé :", pdfUrl);
         console.log("4. Téléchargement du PDF...");
         
-        // On peut le télécharger via Puppeteer pour bypasser Cloudflare
-        const pdfBuffer = await page.evaluate(async (url) => {
+        // Téléchargement via le navigateur pour conserver les cookies de Cloudflare
+        // On encode en base64 pour éviter que le transfert de données ne plante
+        const pdfBase64 = await page.evaluate(async (url) => {
             const res = await fetch(url);
             const buf = await res.arrayBuffer();
-            return Array.from(new Uint8Array(buf));
+            let binary = '';
+            const bytes = new Uint8Array(buf);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
         }, pdfUrl);
 
-        const buffer = Buffer.from(pdfBuffer);
+        const buffer = Buffer.from(pdfBase64, 'base64');
+        
         console.log("5. Analyse du texte du PDF...");
         const pdfData = await pdfParse(buffer);
         const text = pdfData.text;
 
+        // Détection de l'entité
         const hasSA = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i.test(text);
         
+        // Recherche de la date (les accents sont maintenant corrects)
         let effectiveDate = null;
         const dateRegex = /(?:entrée\s+en\s+vigueur|applicables?\s+à\s+compter\s+du)[^.]*?(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
         const dateMatch = text.match(dateRegex);
@@ -63,6 +71,8 @@ async function main() {
             const d = new Date(parseInt(dateMatch[3]), mois[dateMatch[2].toLowerCase()], parseInt(dateMatch[1]));
             effectiveDate = d.toISOString();
             console.log("✅ Date d'entrée en vigueur trouvée :", effectiveDate);
+        } else {
+            console.log("⚠️ Aucune date d'entrée en vigueur trouvée dans le texte.");
         }
 
         // Récupération des infos de version depuis le texte de la page
