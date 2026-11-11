@@ -6,7 +6,7 @@ const pdfParse = pdfParseModule.default || pdfParseModule;
 async function main() {
     let browser;
     try {
-        console.log("=== VERSION 2.1 : Lancement du navigateur invisible ===");
+        console.log("=== VERSION 2.2 : Lancement du navigateur invisible ===");
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -55,19 +55,18 @@ async function main() {
         // Détection globale de la S.A.
         const hasSA = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i.test(text);
         
-        // --- NOUVEAU : On isole la Partie III ---
+        // --- CORRECTION ICI : On utilise lastIndexOf pour sauter la table des matières ---
         let textToAnalyze = text;
-        const part3Index = text.indexOf("Partie III");
+        const part3Index = text.lastIndexOf("Partie III");
         if (part3Index !== -1) {
             textToAnalyze = text.substring(part3Index);
-            console.log("✂️ Texte réduit à la Partie III (Revolut Bank S.A.)");
+            console.log("✂️ Texte réduit à la VRAIE Partie III (Revolut Bank S.A.)");
         } else {
             console.log("⚠️ Mention 'Partie III' introuvable, analyse sur tout le document.");
         }
 
-        // --- NOUVEAU : Recherche de la date dans la Partie III ---
+        // Recherche de la date d'entrée en vigueur
         let effectiveDate = null;
-        // Gère les apostrophes droites (') et courbes (’), ainsi que "s'applique à compter du"
         const dateRegex = /(?:s['’]appliquera\s+à\s+partir\s+du|s['’]applique\s+à\s+compter\s+du|entrée\s+en\s+vigueur\s+le|applicables?\s+à\s+compter\s+du)\s+(\d{1,2})(?:er)?\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
         
         const dateMatch = textToAnalyze.match(dateRegex);
@@ -78,7 +77,7 @@ async function main() {
             const moisStr = dateMatch[2].toLowerCase();
             const annee = parseInt(dateMatch[3]);
             
-            // Date.UTC permet d'éviter les décalages horaires du serveur
+            // Date.UTC permet d'éviter les décalages horaires
             const d = new Date(Date.UTC(annee, mois[moisStr], jour));
             effectiveDate = d.toISOString();
             console.log("✅ Date d'entrée en vigueur pour Revolut Bank S.A. trouvée :", effectiveDate);
