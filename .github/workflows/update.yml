@@ -5,7 +5,6 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
 
-# LIGNE CRUCIALE : Autorise le robot à sauvegarder le fichier status.json
 permissions:
   contents: write
 
@@ -19,15 +18,17 @@ jobs:
       - name: Installation de Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Installation de la librairie PDF
-        run: npm install pdf-parse
+      # NOUVEAU : Installation des dépendances pour le navigateur invisible
+      - name: Installation de Puppeteer et PDF-Parse
+        run: npm install puppeteer pdf-parse
 
-      - name: Exécution du robot
+      - name: Exécution du robot avec navigateur
         run: node scraper.js
 
       - name: Sauvegarde du fichier status.json
+        if: always()
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
