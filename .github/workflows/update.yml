@@ -22,7 +22,7 @@ jobs:
 
       # NOUVEAU : Installation des dépendances pour le navigateur invisible
       - name: Installation de Puppeteer et PDF-Parse
-        run: npm install puppeteer pdf-parse
+        run: npm install puppeteer pdf-parse@1.1.1
 
       - name: Exécution du robot avec navigateur
         run: node bot.js
