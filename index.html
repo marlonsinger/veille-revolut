@@ -5,307 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veille Revolut France</title>
     <style>
-        :root {
-            --bg: #0f172a; --card: #1e293b; --border: #334155;
-            --text: #f1f5f9; --muted: #94a3b8; --accent: #6366f1;
-            --green: #22c55e; --orange: #f59e0b; --red: #ef4444; --blue: #3b82f6;
-        }
+        :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --accent: #6366f1; --green: #22c55e; --orange: #f59e0b; --red: #ef4444; }
         * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg); color: var(--text); line-height: 1.6;
-            margin: 0; padding: 20px; display: flex; justify-content: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { max-width: 820px; width: 100%; }
         h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
-        .today-badge {
-            display: inline-block; padding: 6px 14px; border-radius: 20px;
-            background: rgba(59, 130, 246, 0.15); color: #93c5fd;
-            font-size: 0.9rem; font-weight: 600; margin-bottom: 1.5rem;
-        }
-        .card {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 20px; margin-bottom: 20px;
-        }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .card h2 { font-size: 1.05rem; margin-top: 0; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-        .status-box {
-            padding: 16px; border-radius: 8px; margin: 16px 0;
-            font-weight: 500; display: flex; align-items: center; gap: 10px;
-        }
+        .status-box { padding: 16px; border-radius: 8px; margin: 16px 0; font-weight: 500; display: flex; align-items: center; gap: 10px; }
         .status-uab { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd34d; }
         .status-sa { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #86efac; }
         .status-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; }
-        .btn {
-            display: inline-block; background: var(--accent); color: white;
-            padding: 12px 24px; border-radius: 8px; text-decoration: none;
-            font-weight: 600; border: none; cursor: pointer; font-size: 1rem;
-        }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-link {
-            display: block; text-align: center; padding: 12px; margin-top: 16px;
-            background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4);
-            border-radius: 8px; color: #a5b4fc; text-decoration: none; font-weight: 600;
-        }
-        .btn-link:hover { background: rgba(99, 102, 241, 0.25); }
+        .btn-link { display: block; text-align: center; padding: 12px; margin-top: 16px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 8px; color: #a5b4fc; text-decoration: none; font-weight: 600; }
         .meta { font-size: 0.9rem; color: var(--muted); margin-top: 12px; word-break: break-all; }
-        .meta strong { color: var(--text); }
-        .date-highlight {
-            background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--accent);
-            padding: 14px 16px; border-radius: 4px; margin: 14px 0;
-        }
-        .date-highlight strong { font-size: 1.1rem; }
-        .date-pill {
-            display: inline-block; padding: 2px 10px; border-radius: 12px;
-            font-size: 0.8rem; font-weight: 600; margin-left: 8px;
-        }
+        .date-highlight { background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--accent); padding: 14px 16px; border-radius: 4px; margin: 14px 0; }
+        .date-pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-left: 8px; }
         .date-past { background: rgba(34, 197, 94, 0.2); color: #86efac; }
         .date-today { background: rgba(99, 102, 241, 0.3); color: #c7d2fe; }
         .date-future { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
-        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-        th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
         .footer { text-align: center; margin-top: 40px; color: var(--muted); font-size: 0.85rem; }
-        code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }
-        input[type="url"] { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🇫🇷 Veille Revolut France</h1>
-            <div class="today-badge" id="todayBadge">📅 Aujourd'hui : —</div>
+            <p style="color:var(--muted);">Analyse automatisée par GitHub Actions</p>
         </header>
 
         <div class="card">
-            <h2>Analyse Automatique</h2>
-            <div id="status" class="status-box status-uab">
-                ⏳ Prêt. Touchez le bouton pour lancer l'analyse.
-            </div>
-            <button id="runBtn" class="btn">🔄 Lancer la vérification</button>
-            <div id="result" style="margin-top: 20px;"></div>
+            <h2>Statut (Dernière analyse)</h2>
+            <div id="status" class="status-box status-uab">⏳ Chargement des données...</div>
+            <div id="result"></div>
         </div>
 
         <div class="card">
-            <h2>Mode Manuel (Secours)</h2>
-            <p class="meta" style="margin-top:0;">Si l'analyse automatique échoue (erreur CORS), copiez l'URL d'un PDF de Revolut et collez-la ici :</p>
-            <input type="url" id="manualUrl" placeholder="https://cdn.revolut.com/.../conditions.pdf">
-            <button id="manualBtn" class="btn" style="background: var(--border);">Analyser ce PDF manuellement</button>
-        </div>
-
-        <div class="card">
-            <h2>🔗 Accès directs</h2>
-            <ul style="padding-left:20px;">
-                <li><a href="https://www.revolut.com/fr-FR/legal/terms/history/" target="_blank" rel="noopener noreferrer">Page d'historique des CG</a></li>
-                <li><a href="https://www.revolut.com/fr-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (FR)</a></li>
-            </ul>
-        </div>
-
-        <div class="footer">
-            <p>Outil de veille automatisé — Hébergé sur GitHub Pages.</p>
+            <h2>ℹ️ Comment ça marche</h2>
+            <p class="meta">Un robot GitHub vérifie les conditions générales de Revolut tous les jours à 8h00. Il télécharge le dernier PDF, analyse la date d'entrée en vigueur et met à jour cette page.</p>
+            <a href="https://www.revolut.com/fr-FR/legal/terms/history/" class="btn-link" target="_blank">🔗 Voir la page officielle Revolut</a>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
-    (function () {
-        'use strict';
+        const statusEl = document.getElementById('status');
+        const resultEl = document.getElementById('result');
 
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-        const HISTORY_URL = 'https://www.revolut.com/fr-FR/legal/terms/history/';
-        const $ = id => document.getElementById(id);
-
-        const statusEl = $('status');
-        const resultEl = $('result');
-        const runBtn = $('runBtn');
-        const manualBtn = $('manualBtn');
-        const manualUrl = $('manualUrl');
-
+        // Calcul des dates (pour l'affichage)
         const today = new Date();
-        const fmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        $('todayBadge').textContent = '📅 ' + fmt.format(today);
+        function fmtDate(d) { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(d)); }
+        function daysDelta(d) { return Math.round((new Date(d).getTime() - today.getTime()) / 86400000); }
 
-        function setStatus(html, cls) {
-            statusEl.innerHTML = html;
-            statusEl.className = 'status-box ' + cls;
-        }
+        // Chargement du fichier JSON généré par GitHub Actions
+        fetch('status.json?v=' + Date.now())
+            .then(res => {
+                if (!res.ok) throw new Error("Fichier status.json introuvable. Le robot GitHub n'a pas encore tourné.");
+                return res.json();
+            })
+            .then(data => {
+                if (data.error) throw new Error(data.error);
 
-        // ─────────────────────────────────────────────
-        // RÉSEAU ROBUSTE (Bypass CORS)
-        // ─────────────────────────────────────────────
-        async function robustFetch(url, type = 'text') {
-            // Liste de proxys gratuits. On tente l'accès direct d'abord.
-            const proxies = [
-                u => u, 
-                u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-                u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
-            ];
-
-            let lastErr;
-            for (const proxyFn of proxies) {
-                try {
-                    const res = await fetch(proxyFn(url));
-                    if (!res.ok) throw new Error('HTTP ' + res.status);
-                    return type === 'text' ? await res.text() : await res.arrayBuffer();
-                } catch (e) {
-                    lastErr = e;
-                    console.warn('Échec proxy:', proxyFn(url), e);
-                }
-            }
-            throw new Error('Tous les accès réseau ont échoué (CORS/Proxy). Utilisez le mode manuel.');
-        }
-
-        // ─────────────────────────────────────────────
-        // EXTRACTION DES DATES
-        // ─────────────────────────────────────────────
-        const MOIS_FR = {'janvier':1,'février':2,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,'juillet':7,'août':8,'aout':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12,'decembre':12};
-
-        function extractDates(text) {
-            const out = [];
-            let m;
-            const reFr = /\b(\d{1,2})(?:er)?\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(\d{4})\b/gi;
-            while ((m = reFr.exec(text)) !== null) {
-                const mo = MOIS_FR[m[2].toLowerCase()];
-                if (mo) out.push({ day:+m[1], month:mo, year:+m[3], raw:m[0] });
-            }
-            const reIso = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
-            while ((m = reIso.exec(text)) !== null) {
-                out.push({ day:+m[3], month:+m[2], year:+m[1], raw:m[0] });
-            }
-            return out;
-        }
-
-        function toUTC(d) { return Date.UTC(d.year, d.month - 1, d.day); }
-        function daysDelta(d) { return Math.round((toUTC(d) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000); }
-        function fmtDate(d) { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(toUTC(d))); }
-        
-        function datePill(d) {
-            const delta = daysDelta(d);
-            if (delta < 0) return `<span class="date-pill date-past">passé (il y a ${Math.abs(delta)} j)</span>`;
-            if (delta === 0) return `<span class="date-pill date-today">aujourd'hui</span>`;
-            return `<span class="date-pill date-future">dans ${delta} j</span>`;
-        }
-
-        // ─────────────────────────────────────────────
-        // ANALYSE PDF
-        // ─────────────────────────────────────────────
-        async function analyserPdfBuffer(arrayBuffer) {
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            const reSA = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i;
-            const reUAB = /Revolut\s+Bank\s+UAB/i;
-            const reEff = /(?:entrée\s+en\s+vigueur|applicables?\s+à\s+compter\s+du|prend\s+effet)[^.]{0,100}/i;
-
-            let hitsSA = [], hitsUAB = [], effective = null;
-            const allDates = [];
-
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const text = (await page.getTextContent()).items.map(it => it.str).join(' ');
-                
-                if (reSA.test(text)) hitsSA.push(i);
-                if (reUAB.test(text)) hitsUAB.push(i);
-                
-                if (!effective) {
-                    const match = text.match(reEff);
-                    if (match) {
-                        const dates = extractDates(match[0]);
-                        if (dates.length) effective = { ...dates[0], page: i, keyword: match[0].substring(0, 50) + '...' };
-                    }
+                // Affichage de l'entité
+                if (data.hasSA) {
+                    statusEl.className = 'status-box status-sa';
+                    statusEl.innerHTML = '🇫🇷 Revolut Bank S.A. (France) détectée dans le PDF';
+                } else {
+                    statusEl.className = 'status-box status-uab';
+                    statusEl.innerHTML = '🇱🇹 Revolut Bank UAB (Lituanie) toujours active';
                 }
 
-                for (const d of extractDates(text)) {
-                    const key = `${d.year}-${d.month}-${d.day}`;
-                    if (!allDates.some(x => x.key === key)) allDates.push({ ...d, key, page: i });
+                let html = '';
+
+                // Affichage de la date d'entrée en vigueur
+                if (data.effectiveDate) {
+                    const d = data.effectiveDate;
+                    const delta = daysDelta(d);
+                    let verdict = delta < 0 ? `✅ En vigueur depuis ${Math.abs(delta)} j` : delta === 0 ? "⚡ Aujourd'hui" : `⏳ Dans ${delta} j`;
+                    let vCls = delta < 0 ? 'date-past' : delta === 0 ? 'date-today' : 'date-future';
+                    
+                    html += `<div class="date-highlight">
+                        <div class="meta" style="margin-top:0;">Date d'entrée en vigueur (page ${data.pageNum}) :</div>
+                        <div style="margin-top:6px;"><strong>${fmtDate(d)}</strong> <span class="date-pill ${vCls}">${verdict}</span></div>
+                    </div>`;
+                } else {
+                    html += `<p class="meta">⚠️ Aucune date d'entrée en vigueur n'a pu être extraite du PDF.</p>`;
                 }
-            }
-            allDates.sort((a, b) => toUTC(a) - toUTC(b));
-            return { numPages: pdf.numPages, hitsSA, hitsUAB, effective, allDates };
-        }
 
-        // ─────────────────────────────────────────────
-        // RENDU UI
-        // ─────────────────────────────────────────────
-        function render(pdfInfo, pdfUrl) {
-            let html = '';
-
-            if (pdfInfo.effective) {
-                const d = pdfInfo.effective.date;
-                const delta = daysDelta(d);
-                let verdict = delta < 0 ? `✅ En vigueur depuis ${Math.abs(delta)} j` : delta === 0 ? "⚡ Aujourd'hui" : `⏳ Dans ${delta} j`;
-                let vCls = delta < 0 ? 'date-past' : delta === 0 ? 'date-today' : 'date-future';
-                
-                html += `<div class="date-highlight">
-                    <div class="meta" style="margin-top:0;">Date d'entrée en vigueur (p. ${pdfInfo.effective.page}) :</div>
-                    <div style="margin-top:6px;"><strong>${fmtDate(d)}</strong> <span class="date-pill ${vCls}">${verdict}</span></div>
-                    <div class="meta" style="font-size:0.8rem;">« ${pdfInfo.effective.keyword} »</div>
+                html += `<div class="meta">
+                    <div>📅 Dernière vérification : ${new Date(data.updatedAt).toLocaleString('fr-FR')}</div>
+                    <div>📄 Version du PDF : ${data.version || 'Inconnue'} (${data.dateStr || 'Date inconnue'})</div>
                 </div>`;
-            }
 
-            html += `<div class="meta">
-                <div>📄 PDF analysé — ${pdfInfo.numPages} pages</div>
-                ${pdfInfo.hitsSA.length ? `<div>✅ « S.A. » → page(s) ${pdfInfo.hitsSA.join(', ')}</div>` : ''}
-                ${pdfInfo.hitsUAB.length ? `<div>⚠️ « UAB » → page(s) ${pdfInfo.hitsUAB.join(', ')}</div>` : ''}
-            </div>`;
-
-            if (pdfInfo.allDates.length) {
-                html += `<details style="margin-top:16px;"><summary style="cursor:pointer;color:var(--muted);">📅 Toutes les dates citées (${pdfInfo.allDates.length})</summary>
-                <table><thead><tr><th>Date</th><th>Page</th><th>Statut</th></tr></thead><tbody>`;
-                pdfInfo.allDates.slice(0, 30).forEach(d => {
-                    html += `<tr><td>${fmtDate(d)}</td><td>${d.page}</td><td>${datePill(d)}</td></tr>`;
-                });
-                html += `</tbody></table></details>`;
-            }
-
-            if (pdfUrl) {
-                html += `<a class="btn-link" href="${pdfUrl}#page=${pdfInfo.effective?.page || 1}" target="_blank">🔗 Vérifier le PDF à la page ${pdfInfo.effective?.page || 1}</a>`;
-            }
-            resultEl.innerHTML = html;
-        }
-
-        // ─────────────────────────────────────────────
-        // LOGIQUE PRINCIPALE
-        // ─────────────────────────────────────────────
-        async function run(isManual) {
-            runBtn.disabled = true; manualBtn.disabled = true;
-            resultEl.innerHTML = '';
-            try {
-                let pdfUrl = manualUrl.value.trim();
-
-                if (!isManual) {
-                    setStatus('⏳ Récupération de l\'historique...', 'status-uab');
-                    const html = await robustFetch(HISTORY_URL, 'text');
-                    
-                    // Recherche du lien PDF
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    const links = [...doc.querySelectorAll('a[href$=".pdf"]')].map(a => a.href);
-                    if (!links.length) throw new Error('Aucun lien PDF trouvé sur la page. Passez en mode manuel.');
-                    
-                    pdfUrl = links[0]; // Le premier lien est généralement le plus récent
-                    manualUrl.value = pdfUrl; // Pré-remplit pour info
+                if (data.pdfUrl) {
+                    html += `<a class="btn-link" href="${data.pdfUrl}#page=${data.pageNum || 1}" target="_blank">🔗 Ouvrir le PDF à la page ${data.pageNum || 1}</a>`;
                 }
 
-                setStatus('⏳ Téléchargement et analyse du PDF...', 'status-uab');
-                const pdfBuffer = await robustFetch(pdfUrl, 'arrayBuffer');
-                const pdfInfo = await analyserPdfBuffer(pdfBuffer);
-
-                setStatus('✅ Analyse terminée', 'status-sa');
-                render(pdfInfo, pdfUrl);
-
-            } catch (err) {
-                console.error(err);
-                setStatus('❌ ' + err.message, 'status-error');
-            } finally {
-                runBtn.disabled = false; manualBtn.disabled = false;
-            }
-        }
-
-        runBtn.addEventListener('click', () => run(false));
-        manualBtn.addEventListener('click', () => {
-            if (!manualUrl.value.trim()) return alert('Veuillez coller une URL de PDF.');
-            run(true);
-        });
-    })();
+                resultEl.innerHTML = html;
+            })
+            .catch(err => {
+                statusEl.className = 'status-box status-error';
+                statusEl.innerHTML = '❌ ' + err.message;
+            });
     </script>
 </body>
 </html>
