@@ -25,7 +25,7 @@ jobs:
         run: npm install puppeteer pdf-parse
 
       - name: Exécution du robot avec navigateur
-        run: node scraper.js
+        run: node bot.js
 
       - name: Sauvegarde du fichier status.json
         if: always()
