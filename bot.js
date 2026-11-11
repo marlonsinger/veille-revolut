@@ -54,7 +54,7 @@ async function main() {
         const hasSA = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i.test(text);
         
         let effectiveDate = null;
-        const dateRegex = /(?:entree\s+en\s+vigueur|entrée\s+en\s+vigueur|applicables?\s+a\s+compter\s+du|applicables?\s+à\s+compter\s+du)[^.]*?(\d{1,2})\s+(janvier|fevrier|février|mars|avril|mai|juin|juillet|aout|août|septembre|octobre|novembre|decembre|décembre)\s+(\d{4})/i;
+        const dateRegex = /(?:s'appliquera\s+à\s+partir\s+du|entrée\s+en\s+vigueur|applicables?\s+à\s+compter\s+du)[^.]*?(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/i;
         const dateMatch = text.match(dateRegex);
         
         if (dateMatch) {
