@@ -20,11 +20,10 @@ jobs:
         with:
           node-version: '22'
 
-      # NOUVEAU : Installation des dépendances pour le navigateur invisible
       - name: Installation de Puppeteer et PDF-Parse
         run: npm install puppeteer pdf-parse@1.1.1
 
-      - name: Exécution du robot avec navigateur
+      - name: Exécution du robot
         run: node bot.js
 
       - name: Sauvegarde du fichier status.json
@@ -34,4 +33,4 @@ jobs:
           git config --local user.name "GitHub Action"
           git add status.json
           git commit -m "Mise à jour automatique du statut" || exit 0
-          git push
+          git push origin HEAD:main
