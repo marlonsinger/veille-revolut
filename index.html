@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veille Revolut France</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #6366f1;
+            --green: #22c55e;
+            --orange: #f59e0b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+        }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.2rem; margin-top: 0; color: var(--muted); }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 12px; }
+        a {
+            color: #a5b4fc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover { text-decoration: underline; }
+        .btn {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #4f46e5; text-decoration: none; }
+        .highlight {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 16px 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-uab { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+        .status-sa { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .muted { color: var(--muted); font-size: 0.9rem; }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇫🇷 Veille Revolut France</h1>
+            <p class="muted">Suivi de la bascule vers l'entité bancaire française</p>
+        </header>
+
+        <div class="card">
+            <h3>🔗 Accès direct aux pages officielles</h3>
+            <p>Cliquez sur ces liens pour consulter les documents sources sur le site de Revolut :</p>
+            <ul>
+                <li>
+                    <a href="https://www.revolut.com/fr-FR/legal/terms/" target="_blank" rel="noopener noreferrer">
+                        📄 Page des Conditions Générales (FR)
+                    </a><br>
+                    <span class="muted">C'est ici que se trouvent les CG de toutes les entités (UAB, Succursale FR, S.A.).</span>
+                </li>
+                <li>
+                    <a href="https://www.revolut.com/en-FR/legal/terms/" target="_blank" rel="noopener noreferrer">
+                        📄 Page des Conditions Générales (EN)
+                    </a><br>
+                    <span class="muted">Version anglaise, souvent mise à jour en premier et citée comme référence.</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>🔍 Que faut-il chercher exactement ?</h3>
+            <p>Sur la page des CG, faites défiler pour trouver les sections et recherchez les mentions clés suivantes :</p>
+
+            <div class="highlight">
+                <strong>1. L'entité actuelle (Lituanie) :</strong><br>
+                Recherchez la mention <strong>« Revolut Bank UAB »</strong>. C'est l'entité historique basée en Lituanie (siège : Konstitucijos ave. 21B, 08105 Vilnius).<br>
+                <span class="status-badge status-uab">Statut actuel (attendu)</span>
+            </div>
+
+            <div class="highlight">
+                <strong>2. La nouvelle entité (France) :</strong><br>
+                Recherchez la mention <strong>« Revolut Bank S.A. »</strong> ou <strong>« Revolut France, succursale de Revolut Bank UAB »</strong>. La mention <strong>« Revolut Bank S.A. »</strong> avec une adresse à Paris (10 avenue Kléber, 75116 Paris) indique la nouvelle banque de droit français.<br>
+                <span class="status-badge status-sa">Objectif de la veille</span>
+            </div>
+
+            <p style="margin-top: 16px;">
+                <strong>💡 Conseil :</strong> Utilisez la fonction de recherche de votre navigateur (<code>Cmd+F</code> sur Mac, <code>Ctrl+F</code> sur PC) avec les termes « <strong>UAB</strong> » et « <strong>S.A.</strong> » pour repérer rapidement ces mentions sur la page.
+            </p>
+        </div>
+
+        <div class="card">
+            <h3>📅 Ce qui est déjà planifié (contexte)</h3>
+            <ul>
+                <li><strong>10 août 2026 :</strong> Revolut Bank S.A. a obtenu sa licence bancaire complète en France, supervisée par l'ACPR et la BCE[reference:0].</li>
+                <li><strong>2 au 5 décembre 2026 :</strong> Transfert automatique des comptes des clients français (particuliers et professionnels) de la succursale de Revolut Bank UAB vers Revolut Bank S.A.[reference:1][reference:2].</li>
+                <li><strong>2 décembre 2026 :</strong> Entrée en vigueur des nouvelles conditions générales de Revolut Bank S.A.[reference:3].</li>
+                <li><strong>Début 2027 :</strong> Ouverture officielle du nouveau siège parisien (116 rue Réaumur)[reference:4].</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Page de veille statique — Aucune donnée collectée. Dernière vérification manuelle à effectuer par vos soins.</p>
+        </footer>
+    </div>
+</body>
+</html>
