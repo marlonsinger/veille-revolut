@@ -66,6 +66,7 @@
         th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
         .footer { text-align: center; margin-top: 40px; color: var(--muted); font-size: 0.85rem; }
         code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }
+        input[type="url"] { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -76,35 +77,31 @@
         </header>
 
         <div class="card">
-            <h2>Analyse de l'historique des CG</h2>
+            <h2>Analyse Automatique</h2>
             <div id="status" class="status-box status-uab">
-                ⏳ Prêt. Touchez le bouton pour analyser la page d'historique et le PDF de référence.
+                ⏳ Prêt. Touchez le bouton pour lancer l'analyse.
             </div>
             <button id="runBtn" class="btn">🔄 Lancer la vérification</button>
             <div id="result" style="margin-top: 20px;"></div>
         </div>
 
         <div class="card">
-            <h2>🔗 Accès directs</h2>
-            <ul style="padding-left:20px;">
-                <li><a href="https://www.revolut.com/fr-FR/legal/terms/history/" target="_blank" rel="noopener noreferrer">Page d'historique des CG (celle analysée)</a></li>
-                <li><a href="https://www.revolut.com/fr-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (FR)</a></li>
-                <li><a href="https://www.revolut.com/en-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (EN)</a></li>
-            </ul>
-            <p class="meta">La page d'historique liste les versions avec leurs dates et liens PDF. La page des CG contient le texte complet des trois entités (UAB, Succursale FR, S.A.).</p>
+            <h2>Mode Manuel (Secours)</h2>
+            <p class="meta" style="margin-top:0;">Si l'analyse automatique échoue (erreur CORS), copiez l'URL d'un PDF de Revolut et collez-la ici :</p>
+            <input type="url" id="manualUrl" placeholder="https://cdn.revolut.com/.../conditions.pdf">
+            <button id="manualBtn" class="btn" style="background: var(--border);">Analyser ce PDF manuellement</button>
         </div>
 
         <div class="card">
-            <h2>ℹ️ Ce que l'outil vérifie</h2>
+            <h2>🔗 Accès directs</h2>
             <ul style="padding-left:20px;">
-                <li><strong>Versions listées :</strong> extraction des numéros de version, dates de publication et liens PDF depuis la page d'historique.</li>
-                <li><strong>Dates :</strong> extraction de toutes les dates citées dans le PDF le plus récent (format FR, EN, ISO, DD/MM/YYYY).</li>
-                <li><strong>Date d'entrée en vigueur :</strong> repérage des mentions « entrée en vigueur », « applicable à compter du », « effective from »… et comparaison à la date du jour.</li>
+                <li><a href="https://www.revolut.com/fr-FR/legal/terms/history/" target="_blank" rel="noopener noreferrer">Page d'historique des CG</a></li>
+                <li><a href="https://www.revolut.com/fr-FR/legal/terms/" target="_blank" rel="noopener noreferrer">Page des Conditions Générales (FR)</a></li>
             </ul>
         </div>
 
         <div class="footer">
-            <p>Outil de veille automatisé — Hébergé sur GitHub Pages. Aucune donnée collectée.</p>
+            <p>Outil de veille automatisé — Hébergé sur GitHub Pages.</p>
         </div>
     </div>
 
@@ -122,13 +119,12 @@
         const statusEl = $('status');
         const resultEl = $('result');
         const runBtn = $('runBtn');
-        const todayBadge = $('todayBadge');
+        const manualBtn = $('manualBtn');
+        const manualUrl = $('manualUrl');
 
         const today = new Date();
-        const fmt = new Intl.DateTimeFormat('fr-FR', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        });
-        todayBadge.textContent = '📅 ' + fmt.format(today);
+        const fmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        $('todayBadge').textContent = '📅 ' + fmt.format(today);
 
         function setStatus(html, cls) {
             statusEl.innerHTML = html;
@@ -136,336 +132,178 @@
         }
 
         // ─────────────────────────────────────────────
-        // Extraction des dates
+        // RÉSEAU ROBUSTE (Bypass CORS)
         // ─────────────────────────────────────────────
-        const MOIS_FR = {
-            'janvier':1,'février':2,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,
-            'juillet':7,'août':8,'aout':8,'septembre':9,'octobre':10,'novembre':11,
-            'décembre':12,'decembre':12
-        };
-        const MOIS_EN = {
-            'january':1,'february':2,'march':3,'april':4,'may':5,'june':6,
-            'july':7,'august':8,'september':9,'october':10,'november':11,'december':12
-        };
+        async function robustFetch(url, type = 'text') {
+            // Liste de proxys gratuits. On tente l'accès direct d'abord.
+            const proxies = [
+                u => u, 
+                u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+            ];
+
+            let lastErr;
+            for (const proxyFn of proxies) {
+                try {
+                    const res = await fetch(proxyFn(url));
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return type === 'text' ? await res.text() : await res.arrayBuffer();
+                } catch (e) {
+                    lastErr = e;
+                    console.warn('Échec proxy:', proxyFn(url), e);
+                }
+            }
+            throw new Error('Tous les accès réseau ont échoué (CORS/Proxy). Utilisez le mode manuel.');
+        }
+
+        // ─────────────────────────────────────────────
+        // EXTRACTION DES DATES
+        // ─────────────────────────────────────────────
+        const MOIS_FR = {'janvier':1,'février':2,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,'juillet':7,'août':8,'aout':8,'septembre':9,'octobre':10,'novembre':11,'décembre':12,'decembre':12};
 
         function extractDates(text) {
             const out = [];
             let m;
-
             const reFr = /\b(\d{1,2})(?:er)?\s+(janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+(\d{4})\b/gi;
             while ((m = reFr.exec(text)) !== null) {
                 const mo = MOIS_FR[m[2].toLowerCase()];
                 if (mo) out.push({ day:+m[1], month:mo, year:+m[3], raw:m[0] });
             }
-
-            const reEn = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
-            while ((m = reEn.exec(text)) !== null) {
-                out.push({ day:+m[2], month:MOIS_EN[m[1].toLowerCase()], year:+m[3], raw:m[0] });
-            }
-
             const reIso = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
             while ((m = reIso.exec(text)) !== null) {
                 out.push({ day:+m[3], month:+m[2], year:+m[1], raw:m[0] });
             }
-
-            const reSlash = /\b(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})\b/g;
-            while ((m = reSlash.exec(text)) !== null) {
-                const d = +m[1], mo = +m[2], y = +m[3];
-                if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) {
-                    out.push({ day:d, month:mo, year:y, raw:m[0] });
-                }
-            }
-
             return out;
         }
 
         function toUTC(d) { return Date.UTC(d.year, d.month - 1, d.day); }
-
-        function classify(d) {
-            const t = toUTC(d);
-            const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-            if (t < now) return 'past';
-            if (t > now) return 'future';
-            return 'today';
-        }
-
-        function daysDelta(d) {
-            const t = toUTC(d);
-            const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-            return Math.round((t - now) / 86400000);
-        }
-
-        function fmtDate(d) {
-            return new Intl.DateTimeFormat('fr-FR', {
-                day: 'numeric', month: 'long', year: 'numeric'
-            }).format(new Date(toUTC(d)));
-        }
-
+        function daysDelta(d) { return Math.round((toUTC(d) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 86400000); }
+        function fmtDate(d) { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(toUTC(d))); }
+        
         function datePill(d) {
-            const cls = classify(d);
             const delta = daysDelta(d);
-            let label;
-            if (cls === 'past')      label = `déjà passé (il y a ${Math.abs(delta)} j)`;
-            else if (cls === 'today') label = "aujourd'hui";
-            else                     label = `dans ${delta} j`;
-            const pillCls = cls === 'past' ? 'date-past' : cls === 'today' ? 'date-today' : 'date-future';
-            return `<span class="date-pill ${pillCls}">${label}</span>`;
+            if (delta < 0) return `<span class="date-pill date-past">passé (il y a ${Math.abs(delta)} j)</span>`;
+            if (delta === 0) return `<span class="date-pill date-today">aujourd'hui</span>`;
+            return `<span class="date-pill date-future">dans ${delta} j</span>`;
         }
 
         // ─────────────────────────────────────────────
-        // Recherche des mentions "entrée en vigueur"
+        // ANALYSE PDF
         // ─────────────────────────────────────────────
-        const EFF_KEYWORDS = [
-            /date\s+d[’']entrée\s+en\s+vigueur/i,
-            /entrée\s+en\s+vigueur/i,
-            /applicables?\s+à\s+compter\s+du/i,
-            /prend\s+effet/i,
-            /effective\s+(?:from|date)/i,
-            /shall\s+take\s+effect/i,
-            /with\s+effect\s+from/i,
-            /applicable\s+(?:from|as\s+of)/i
-        ];
-
-        function findEffectiveDates(text) {
-            const results = [];
-            for (const re of EFF_KEYWORDS) {
-                const rx = new RegExp(re.source, 'gi');
-                let m;
-                while ((m = rx.exec(text)) !== null) {
-                    const after  = text.slice(m.index + m[0].length, m.index + m[0].length + 300);
-                    const before = text.slice(Math.max(0, m.index - 300), m.index);
-                    let dates = extractDates(after);
-                    if (!dates.length) dates = extractDates(before);
-                    if (dates.length) {
-                        results.push({ date: dates[0], keyword: m[0].trim() });
-                    }
-                }
-            }
-            return results;
-        }
-
-        // ─────────────────────────────────────────────
-        // Scraping de la page d'historique
-        // ─────────────────────────────────────────────
-        async function analyserHistorique() {
-            const res = await fetch(HISTORY_URL, { headers: { 'Accept': 'text/html' } });
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' sur la page d\'historique');
-            const html = await res.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-
-            // Le contenu de la page est rendu côté client, on cherche donc les liens PDF
-            // et les blocs de texte qui les entourent.
-            const pdfLinks = [...doc.querySelectorAll('a[href$=".pdf"]')].map(a => a.href);
-
-            // Si les liens PDF ne sont pas directement trouvables (rendu JS),
-            // on tente une approche alternative : chercher dans le texte brut.
-            let fallbackLinks = [];
-            if (pdfLinks.length === 0) {
-                // Cherche des URL de PDF dans le HTML brut
-                const matches = html.match(/https:\/\/cdn\.revolut\.com\/[^"'\s]+\.pdf/g);
-                if (matches) fallbackLinks = [...new Set(matches)];
-            }
-
-            const finalLinks = pdfLinks.length > 0 ? pdfLinks : fallbackLinks;
-
-            // Extraction des versions et dates à partir du texte entourant les liens
-            const versions = [];
-            const seen = new Set();
-            for (const link of finalLinks) {
-                // Récupère un extrait de texte autour du lien pour trouver la version et la date
-                const idx = html.indexOf(link);
-                if (idx === -1) continue;
-                const snippet = html.slice(Math.max(0, idx - 500), idx + 500);
-                const dates = extractDates(snippet);
-                const versionMatch = snippet.match(/(\d+\.\d+\.\d+)/);
-                if (dates.length && versionMatch) {
-                    const key = `${versionMatch[1]}|${dates[0].year}-${dates[0].month}-${dates[0].day}`;
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        versions.push({
-                            version: versionMatch[1],
-                            date: dates[0],
-                            pdfUrl: link
-                        });
-                    }
-                }
-            }
-
-            // Tri par date décroissante (la plus récente en premier)
-            versions.sort((a, b) => toUTC(b.date) - toUTC(a.date));
-
-            return { versions, pdfUrl: versions.length > 0 ? versions[0].pdfUrl : null, allLinks: finalLinks };
-        }
-
-        // ─────────────────────────────────────────────
-        // Analyse du PDF : texte page par page
-        // ─────────────────────────────────────────────
-        async function analyserPdf(url) {
-            const pdf = await pdfjsLib.getDocument(url).promise;
-            const reSA  = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i;
+        async function analyserPdfBuffer(arrayBuffer) {
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const reSA = /Revolut\s+Bank\s*[,.]?\s*S\.?A\.?/i;
             const reUAB = /Revolut\s+Bank\s+UAB/i;
+            const reEff = /(?:entrée\s+en\s+vigueur|applicables?\s+à\s+compter\s+du|prend\s+effet)[^.]{0,100}/i;
 
-            const pages = [];
-            let effective = null;
-            let hitsSA = [], hitsUAB = [];
+            let hitsSA = [], hitsUAB = [], effective = null;
+            const allDates = [];
 
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                const text = content.items.map(it => it.str).join(' ');
-                pages.push({ n: i, text });
-                if (reSA.test(text))  hitsSA.push(i);
+                const text = (await page.getTextContent()).items.map(it => it.str).join(' ');
+                
+                if (reSA.test(text)) hitsSA.push(i);
                 if (reUAB.test(text)) hitsUAB.push(i);
-
-                const effs = findEffectiveDates(text);
-                if (effs.length && !effective) {
-                    effective = { ...effs[0], page: i };
+                
+                if (!effective) {
+                    const match = text.match(reEff);
+                    if (match) {
+                        const dates = extractDates(match[0]);
+                        if (dates.length) effective = { ...dates[0], page: i, keyword: match[0].substring(0, 50) + '...' };
+                    }
                 }
-            }
 
-            const allDates = [];
-            const seen = new Set();
-            for (const p of pages) {
-                for (const d of extractDates(p.text)) {
+                for (const d of extractDates(text)) {
                     const key = `${d.year}-${d.month}-${d.day}`;
-                    if (seen.has(key)) continue;
-                    seen.add(key);
-                    allDates.push({ ...d, page: p.n });
+                    if (!allDates.some(x => x.key === key)) allDates.push({ ...d, key, page: i });
                 }
             }
             allDates.sort((a, b) => toUTC(a) - toUTC(b));
-
             return { numPages: pdf.numPages, hitsSA, hitsUAB, effective, allDates };
         }
 
         // ─────────────────────────────────────────────
-        // Rendu
+        // RENDU UI
         // ─────────────────────────────────────────────
-        function render(historyInfo, pdfInfo) {
-            let entiteCls, entiteTxt;
-            if (historyInfo.versions.length > 0) {
-                entiteCls = 'status-sa'; entiteTxt = '🇫🇷 Historique Revolut Bank S.A. détecté';
-            } else {
-                entiteCls = 'status-error'; entiteTxt = '❓ Aucune version trouvée';
-            }
-            setStatus(entiteTxt, entiteCls);
-
+        function render(pdfInfo, pdfUrl) {
             let html = '';
 
-            if (historyInfo.versions.length > 0) {
-                html += `<div class="meta"><div>📋 Versions trouvées : ${historyInfo.versions.length}</div>`;
-                for (const v of historyInfo.versions.slice(0, 5)) {
-                    const delta = daysDelta(v.date);
-                    let vCls = classify(v.date);
-                    let vLabel = vCls === 'past' ? 'passée' : vCls === 'today' ? "aujourd'hui" : 'future';
-                    html += `<div style="margin-top:4px;">• Version <strong>${v.version}</strong> du ${fmtDate(v.date)} (${vLabel})</div>`;
-                }
-                html += `</div>`;
-            }
-
-            if (pdfInfo && pdfInfo.effective) {
+            if (pdfInfo.effective) {
                 const d = pdfInfo.effective.date;
                 const delta = daysDelta(d);
-                let verdict, verdictCls;
-                if (classify(d) === 'past') {
-                    verdict = `✅ En vigueur depuis ${Math.abs(delta)} jour(s)`;
-                    verdictCls = 'date-past';
-                } else if (classify(d) === 'today') {
-                    verdict = "⚡ Entre en vigueur aujourd'hui";
-                    verdictCls = 'date-today';
-                } else {
-                    verdict = `⏳ Entrera en vigueur dans ${delta} jour(s)`;
-                    verdictCls = 'date-future';
-                }
-
-                html += `
-                    <div class="date-highlight">
-                        <div class="meta" style="margin-top:0;">Date d'entrée en vigueur détectée (p. ${pdfInfo.effective.page}) :</div>
-                        <div style="margin-top:6px;">
-                            <strong>${fmtDate(d)}</strong>
-                            <span class="date-pill ${verdictCls}">${verdict}</span>
-                        </div>
-                        <div class="meta">Motif repéré : « ${escapeHtml(pdfInfo.effective.keyword)} »</div>
-                    </div>
-                `;
-            } else if (pdfInfo) {
-                html += `<div class="date-highlight" style="border-left-color: var(--orange);">
-                    <div class="meta" style="margin-top:0;">⚠️ Aucune date d'entrée en vigueur détectée dans le PDF.</div>
+                let verdict = delta < 0 ? `✅ En vigueur depuis ${Math.abs(delta)} j` : delta === 0 ? "⚡ Aujourd'hui" : `⏳ Dans ${delta} j`;
+                let vCls = delta < 0 ? 'date-past' : delta === 0 ? 'date-today' : 'date-future';
+                
+                html += `<div class="date-highlight">
+                    <div class="meta" style="margin-top:0;">Date d'entrée en vigueur (p. ${pdfInfo.effective.page}) :</div>
+                    <div style="margin-top:6px;"><strong>${fmtDate(d)}</strong> <span class="date-pill ${vCls}">${verdict}</span></div>
+                    <div class="meta" style="font-size:0.8rem;">« ${pdfInfo.effective.keyword} »</div>
                 </div>`;
             }
 
-            if (pdfInfo) {
-                html += '<div class="meta">';
-                html += `<div>📄 PDF analysé — ${pdfInfo.numPages} pages</div>`;
-                if (pdfInfo.hitsSA.length)
-                    html += `<div>✅ « Revolut Bank S.A. » → page(s) ${pdfInfo.hitsSA.join(', ')}</div>`;
-                if (pdfInfo.hitsUAB.length)
-                    html += `<div>⚠️ « Revolut Bank UAB » → page(s) ${pdfInfo.hitsUAB.join(', ')}</div>`;
-                html += '</div>';
-            }
+            html += `<div class="meta">
+                <div>📄 PDF analysé — ${pdfInfo.numPages} pages</div>
+                ${pdfInfo.hitsSA.length ? `<div>✅ « S.A. » → page(s) ${pdfInfo.hitsSA.join(', ')}</div>` : ''}
+                ${pdfInfo.hitsUAB.length ? `<div>⚠️ « UAB » → page(s) ${pdfInfo.hitsUAB.join(', ')}</div>` : ''}
+            </div>`;
 
-            if (pdfInfo && pdfInfo.allDates.length) {
-                html += `<details style="margin-top:16px;"><summary style="cursor:pointer;color:var(--muted);font-size:0.9rem;">📅 Toutes les dates citées dans le PDF (${pdfInfo.allDates.length})</summary>
-                <table>
-                  <thead><tr><th>Date</th><th>Page</th><th>Statut</th></tr></thead>
-                  <tbody>`;
-                for (const d of pdfInfo.allDates.slice(0, 40)) {
-                    html += `<tr>
-                        <td>${fmtDate(d)}</td>
-                        <td>${d.page}</td>
-                        <td>${datePill(d)}</td>
-                    </tr>`;
-                }
+            if (pdfInfo.allDates.length) {
+                html += `<details style="margin-top:16px;"><summary style="cursor:pointer;color:var(--muted);">📅 Toutes les dates citées (${pdfInfo.allDates.length})</summary>
+                <table><thead><tr><th>Date</th><th>Page</th><th>Statut</th></tr></thead><tbody>`;
+                pdfInfo.allDates.slice(0, 30).forEach(d => {
+                    html += `<tr><td>${fmtDate(d)}</td><td>${d.page}</td><td>${datePill(d)}</td></tr>`;
+                });
                 html += `</tbody></table></details>`;
             }
 
-            if (historyInfo.pdfUrl) {
-                const targetPage = (pdfInfo && pdfInfo.effective && pdfInfo.effective.page)
-                    || (pdfInfo && (pdfInfo.hitsSA[0] || pdfInfo.hitsUAB[0]))
-                    || 1;
-                html += `<a class="btn-link" href="${historyInfo.pdfUrl}#page=${targetPage}" target="_blank" rel="noopener">
-                    🔗 Ouvrir le PDF le plus récent à la page ${targetPage} pour vérification manuelle
-                </a>`;
-            } else {
-                html += `<p class="meta">⚠️ Aucun lien PDF détecté sur la page d'historique.</p>`;
+            if (pdfUrl) {
+                html += `<a class="btn-link" href="${pdfUrl}#page=${pdfInfo.effective?.page || 1}" target="_blank">🔗 Vérifier le PDF à la page ${pdfInfo.effective?.page || 1}</a>`;
             }
-
             resultEl.innerHTML = html;
         }
 
-        function escapeHtml(s) {
-            return String(s).replace(/[&<>"']/g, c =>
-                ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
-
         // ─────────────────────────────────────────────
-        // Orchestration
+        // LOGIQUE PRINCIPALE
         // ─────────────────────────────────────────────
-        runBtn.addEventListener('click', async () => {
-            runBtn.disabled = true;
+        async function run(isManual) {
+            runBtn.disabled = true; manualBtn.disabled = true;
             resultEl.innerHTML = '';
             try {
-                setStatus('⏳ Lecture de la page <code>legal/terms/history</code>…', 'status-uab');
-                const historyInfo = await analyserHistorique();
+                let pdfUrl = manualUrl.value.trim();
 
-                let pdfInfo = null;
-                if (historyInfo.pdfUrl) {
-                    setStatus('⏳ Analyse du PDF le plus récent…', 'status-uab');
-                    try {
-                        pdfInfo = await analyserPdf(historyInfo.pdfUrl);
-                    } catch (e) {
-                        console.warn('Analyse PDF impossible :', e);
-                    }
+                if (!isManual) {
+                    setStatus('⏳ Récupération de l\'historique...', 'status-uab');
+                    const html = await robustFetch(HISTORY_URL, 'text');
+                    
+                    // Recherche du lien PDF
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const links = [...doc.querySelectorAll('a[href$=".pdf"]')].map(a => a.href);
+                    if (!links.length) throw new Error('Aucun lien PDF trouvé sur la page. Passez en mode manuel.');
+                    
+                    pdfUrl = links[0]; // Le premier lien est généralement le plus récent
+                    manualUrl.value = pdfUrl; // Pré-remplit pour info
                 }
 
-                render(historyInfo, pdfInfo);
+                setStatus('⏳ Téléchargement et analyse du PDF...', 'status-uab');
+                const pdfBuffer = await robustFetch(pdfUrl, 'arrayBuffer');
+                const pdfInfo = await analyserPdfBuffer(pdfBuffer);
+
+                setStatus('✅ Analyse terminée', 'status-sa');
+                render(pdfInfo, pdfUrl);
 
             } catch (err) {
                 console.error(err);
-                setStatus('❌ Erreur : ' + (err.message || err), 'status-error');
+                setStatus('❌ ' + err.message, 'status-error');
             } finally {
-                runBtn.disabled = false;
+                runBtn.disabled = false; manualBtn.disabled = false;
             }
+        }
+
+        runBtn.addEventListener('click', () => run(false));
+        manualBtn.addEventListener('click', () => {
+            if (!manualUrl.value.trim()) return alert('Veuillez coller une URL de PDF.');
+            run(true);
         });
     })();
     </script>
